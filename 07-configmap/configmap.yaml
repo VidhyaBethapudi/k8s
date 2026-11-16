@@ -1,0 +1,13 @@
+# ConfigMap: store non-confidential config data as key-value pairs
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: dev
+data:
+  APP_ENV: "development"
+  LOG_LEVEL: "debug"
+  MAX_CONNECTIONS: "100"
+  app.properties: |
+    server.port=8080
+    server.timeout=30

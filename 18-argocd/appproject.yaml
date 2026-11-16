@@ -1,0 +1,18 @@
+# AppProject: groups applications and restricts what they can deploy / where
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: myteam-project
+  namespace: argocd
+spec:
+  description: Project for myteam applications
+  sourceRepos:
+    - "https://github.com/myorg/*"
+  destinations:
+    - namespace: "dev"
+      server: https://kubernetes.default.svc
+    - namespace: "prod"
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

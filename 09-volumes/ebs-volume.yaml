@@ -1,0 +1,18 @@
+# AWS EBS volume mounted directly (prefer PVC + StorageClass in practice - see 10-pv-pvc)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ebs-pod
+  namespace: dev
+spec:
+  containers:
+    - name: app
+      image: nginx:1.27
+      volumeMounts:
+        - name: ebs-volume
+          mountPath: /usr/share/nginx/html
+  volumes:
+    - name: ebs-volume
+      awsElasticBlockStore:
+        volumeID: vol-0123456789abcdef0
+        fsType: ext4

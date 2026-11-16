@@ -1,0 +1,15 @@
+# Service exposing a /metrics port so ServiceMonitor can scrape it
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-metrics
+  namespace: dev
+  labels:
+    app: myapp
+spec:
+  selector:
+    app: myapp
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: 9100

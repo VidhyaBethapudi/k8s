@@ -1,0 +1,19 @@
+# ServiceMonitor: tells Prometheus Operator to scrape metrics from your app's Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: myapp-monitor
+  namespace: dev
+  labels:
+    release: kube-prometheus-stack   # must match Prometheus Operator's selector
+spec:
+  selector:
+    matchLabels:
+      app: myapp
+  namespaceSelector:
+    matchNames:
+      - dev
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

@@ -1,0 +1,18 @@
+# Job: runs a Pod to completion (batch/one-off task)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  namespace: dev
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migration
+          image: myapp-migration:1.0
+          command: ["python", "manage.py", "migrate"]

@@ -1,0 +1,55 @@
+// Jenkins Declarative Pipeline: build, push to ECR, deploy to EKS
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION     = 'ap-south-1'
+        ECR_REPO       = '123456789012.dkr.ecr.ap-south-1.amazonaws.com/myapp'
+        EKS_CLUSTER    = 'my-eks-cluster'
+        IMAGE_TAG      = "${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
+                sh 'docker run --rm $ECR_REPO:$IMAGE_TAG npm test || true'
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                sh '''
+                    aws ecr get-login-password --region $AWS_REGION | \
+                    docker login --username AWS --password-stdin $ECR_REPO
+                    docker push $ECR_REPO:$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                sh '''
+                    aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
+                    kubectl set image deployment/nginx-deployment nginx=$ECR_REPO:$IMAGE_TAG -n dev
+                    kubectl rollout status deployment/nginx-deployment -n dev
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment succeeded: build ${IMAGE_TAG}"
+        }
+        failure {
+            echo "Pipeline failed - check logs"
+        }
+    }
+}

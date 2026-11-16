@@ -1,0 +1,13 @@
+# PersistentVolumeClaim: request for storage by a Pod (dynamically provisions a PV via StorageClass)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data-pvc
+  namespace: dev
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ebs-gp3
+  resources:
+    requests:
+      storage: 10Gi

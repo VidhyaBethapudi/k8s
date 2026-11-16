@@ -1,0 +1,16 @@
+# PersistentVolume: static provisioning example (dynamic via StorageClass is more common on EKS)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-ebs-example
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ebs-gp3
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: vol-0123456789abcdef0
+    fsType: ext4

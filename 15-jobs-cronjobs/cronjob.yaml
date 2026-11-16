@@ -1,0 +1,25 @@
+# CronJob: runs a Job on a schedule (cron syntax)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nightly-backup
+  namespace: dev
+spec:
+  schedule: "0 2 * * *"          # 2:00 AM daily
+  concurrencyPolicy: Forbid       # Forbid | Allow | Replace
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: myapp-backup:1.0
+              command: ["/bin/sh", "-c", "backup.sh"]
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "128Mi"

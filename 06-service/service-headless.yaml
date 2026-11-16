@@ -1,0 +1,13 @@
+# Headless Service: no ClusterIP, DNS resolves directly to Pod IPs (used with StatefulSets)
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-headless
+  namespace: dev
+spec:
+  clusterIP: None
+  selector:
+    app: nginx
+  ports:
+    - port: 80
+      targetPort: 80

@@ -1,151 +1,45 @@
-# k8s
-Eksctl Install Steps:
+# EKS / Kubernetes Reference Kit
 
-Step 1: Check whether the AWS CLI is installed and configured on your EC2 instance.
+Practical YAML manifests + CLI command references for every topic requested.
+Each numbered folder is self-contained: manifest file(s) + a `commands.sh` showing
+how to apply/use them.
 
-- If you are using Amazon Linux, the AWS CLI is already installed by default. You only need to configure it by running:
-  aws configure
+| Folder | Topic | Notes |
+|---|---|---|
+| 01-eks-install | EKS Installation (CLI) | eksctl + awscli setup, `eks-cluster-config.yaml` |
+| 02-namespace | Namespace | `namespace.yaml` |
+| 03-pod | Pod | single-container + multi-container (sidecar) |
+| 04-deployment | Deployment | rolling update strategy, probes |
+| 05-replicaset | ReplicaSet | rarely used directly, shown for completeness |
+| 06-service | Service | ClusterIP, NodePort, LoadBalancer, Headless |
+| 07-configmap | ConfigMap | env injection + volume mount |
+| 08-secret | Secret | base64 `data`, `stringData`, pod usage |
+| 09-volumes | Volumes | emptyDir, hostPath, EBS (static) |
+| 10-pv-pvc | PV & PVC | StorageClass (dynamic EBS provisioning) |
+| 11-ingress | Ingress | ALB (AWS LB Controller) + ingress-nginx |
+| 12-hpa | HPA | CPU/memory autoscaling, needs metrics-server |
+| 13-daemonset | DaemonSet | per-node agent example (fluentd) |
+| 14-statefulset | StatefulSet | MySQL example w/ volumeClaimTemplates |
+| 15-jobs-cronjobs | Jobs & CronJobs | one-off + scheduled batch jobs |
+| 16-helm | Helm | full sample chart (Chart.yaml/values/templates) + commands |
+| 17-prometheus-grafana | Prometheus & Grafana | kube-prometheus-stack Helm values, ServiceMonitor |
+| 18-argocd | Argo CD | Application, Application (Helm source), AppProject |
+| 19-cicd | Jenkins/GitHub Actions | Jenkinsfile + GitHub Actions workflow to build/push/deploy |
+| 20-eks-troubleshooting | EKS Troubleshooting | cheat sheet of debugging commands by layer |
 
-- If you are using Ubuntu, install the AWS CLI first, then configure it by running:
-  aws configure
+## Quick start order (typical learning path)
+1. `01-eks-install` — stand up a cluster
+2. `02` → `08` — core building blocks (namespace, pod, deployment, service, config/secrets)
+3. `09` → `10` — storage
+4. `11` → `12` — networking + scaling
+5. `13` → `15` — specialized workloads
+6. `16` — package everything as a Helm chart
+7. `17` — add observability
+8. `18` → `19` — GitOps + CI/CD automation
+9. `20` — keep as a reference when things break
 
-
-Step 2: First do unzip for that purpose use this command:
-
-apt install unzip -y
-
-
-Using This command : (To install awscli)
---------------------
-curl -fsSL https://awscli.amazonaws.com/v2/install.sh | sudo bash -s -- --system
-
-aws --version
-
-
-Step 3: Install eksctl use this command:
-
-curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-
-sudo mv /tmp/eksctl /usr/local/bin
-
-eksctl version
-
-Step 4: Install kubectl commands on here:
-
-curl -LO "https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl"
-
-chmod +x kubectl
-sudo mv kubectl /usr/local/bin/
-kubectl version --client
-
-
-Step 5: Create EKS Cluster (Without Node Group):
-
-eksctl create cluster \
---name eks-cluster \
---region us-west-1 \
---version 1.32 \
---zones us-west-1a,us-west-1b \
---without-nodegroup
-
-Step 6:Associate the IAM OIDC Provider: Create & Associate IAM OIDC Provider for our EKS Cluster
-To enable and use AWS IAM roles for Kubernetes service accounts on our EKS cluster, we must create & associate OIDC identity provider.
-
-eksctl utils associate-iam-oidc-provider \
---cluster eks-cluster-td \
---region us-west-1 \
---approve
-
-
-
-Step 7:Check Whether the EKS Cluster Was Created
-
-eksctl get cluster --region us-west-1   (Or use the AWS CLI:)  aws eks list-clusters --region ap-southeast-1
-
-
-Step 8:Update the kubeconfig File:
-
-aws eks update-kubeconfig \
---region us-west-1 \
---name eks-cluster-td
-
-
-Step 9:Verify the Cluster Connection
-
-kubectl cluster-info
-
-
-
-Step 10: Now Create Nodegroup for Eks Cluster:
-
-eksctl create nodegroup \
---cluster eks-cluster-td \
---region us-west-1 \
---name nodegp-eks \
---node-type t3.small \
---nodes 2 \
---nodes-min 2 \
---nodes-max 4 \
---node-volume-size 20 \
---ssh-access \
---ssh-public-key vidhya \
---managed \
---asg-access \
---external-dns-access \
---full-ecr-access \
---appmesh-access \
---alb-ingress-access
-
-Step 11: Check Whether the Node Group Was Created or not:
-
-
-eksctl get nodegroup \
---cluster eks-cluster-td \
---region us-west-1
-
-
-(or using awscli command use below one command):
-
-aws eks list-nodegroups \
---cluster-name vcube \
---region ap-southeast-1
-
-
-
-Step 12:Check Whether Worker Nodes Joined the Cluster
-
-kubectl get nodes
-
-Step 13:Get more details
-
-kubectl get nodes -o wide
-
-Step 14: Check System Pods
-
-kubectl get pods -A
-1. aws eks list-clusters --region eu-north-1
-aws eks list-nodegroups \
-  --cluster-name eks-cluster \
-  --region eu-north-1
-2.aws eks delete-nodegroup \
-  --cluster-name eks-cluster \
-  --nodegroup-name nodegp-eks \
-  --region eu-north-1
-3.aws eks describe-nodegroup \
-  --cluster-name eks-cluster \
-  --nodegroup-name nodegp-eks \
-  --region eu-north-1
-4.aws eks delete-cluster \
-  --name eks-cluster \
-  --region eu-north-1
-5.aws eks describe-cluster \
-  --name eks-cluster \
-  --region eu-north-1
-6.aws eks list-clusters --region eu-north-1
-
-
-
-
-
-
-
+## Prerequisites assumed
+- AWS account with an EKS cluster (see `01-eks-install`)
+- `kubectl`, `eksctl`, `aws` CLI, and `helm` installed and configured
+- Replace placeholder values (account IDs, ARNs, domains, image names) with your own
+# k8s-yaml-files
