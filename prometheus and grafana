@@ -1,0 +1,219 @@
+PROMETHEUS AND GRAFANA INSTALLATION ON KUBERNETES
+================================================
+
+Goal
+----
+Install Prometheus and Grafana on an existing Kubernetes cluster using Helm.
+This guide uses kube-prometheus-stack, which installs Prometheus, Grafana,
+Alertmanager, and Kubernetes monitoring components together.
+
+IMPORTANT
+---------
+- Run these commands on a machine where kubectl already works for your cluster.
+- The cluster must have enough CPU and memory for the monitoring components.
+- Commands below assume a Linux control-plane/admin machine and a namespace
+  named "monitoring".
+- Do not expose dashboards publicly to everyone. Restrict access using your
+  cloud firewall/security group or use a private network/VPN.
+
+STEP 1 — Check that Kubernetes is working
+-----------------------------------------
+kubectl get nodes
+kubectl get pods -A
+
+Wait until your nodes are Ready before continuing.
+
+STEP 2 — Check whether Helm is installed
+----------------------------------------
+helm version
+
+If this displays a Helm version, continue to Step 3.
+
+If "helm: command not found" appears, install Helm on Ubuntu/Debian:
+
+sudo apt-get update
+sudo apt-get install -y curl
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+helm version
+
+For another Linux distribution, follow the official Helm installation guide:
+
+https://helm.sh/docs/intro/install/
+
+
+STEP 3 — Add the Prometheus Community Helm repository
+-----------------------------------------------------
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+STEP 4 — Create the monitoring namespace
+----------------------------------------
+kubectl create namespace monitoring
+
+If it already exists, Kubernetes may say it already exists; that is okay.
+Confirm with:
+
+kubectl get namespace monitoring
+
+
+STEP 5 — Install Prometheus and Grafana
+---------------------------------------
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  --namespace monitoring
+
+Wait for the installation to finish, then check:
+helm list -n monitoring
+
+kubectl get pods -n monitoring
+
+Wait until the monitoring Pods are Running/Ready:
+
+kubectl get pods -n monitoring -w
+
+Press Ctrl+C after the Pods are ready.
+
+
+STEP 6 — Check the installed Services
+-------------------------------------
+
+kubectl get svc -n monitoring
+
+Look for Services with names similar to:
+- monitoring-grafana
+- monitoring-kube-prometheus-prometheus
+- monitoring-kube-prometheus-operator
+
+Exact names can vary by Helm release/chart version.
+
+STEP 7 — Get the Grafana login credentials
+------------------------------------------
+Username is usually:
+admin
+
+Get the password from the Kubernetes Secret:
+kubectl get secret monitoring-grafana -n monitoring -o jsonpath='{.data.admin-password}' | base64 -d
+echo
+
+If that Secret name does not exist, list the Grafana Secrets:
+kubectl get secrets -n monitoring | grep grafana
+
+Use the matching Secret name in the command above.
+
+STEP 8 — Access Grafana without kubectl port-forward (NodePort)
+---------------------------------------------------------------
+First, change the Grafana Service to NodePort:
+kubectl patch svc monitoring-grafana -n monitoring -p '{"spec":{"type":"NodePort"}}'
+
+Find the actual assigned NodePort:
+kubectl get svc monitoring-grafana -n monitoring
+
+Example output might show:
+80:32000/TCP
+
+In this example, 32000 is the NodePort. YOUR PORT MAY BE DIFFERENT.
+Use the port shown by your own command.
+
+Find the public IP address of a Kubernetes node in your cloud console.
+Then allow that NodePort in the node's cloud security group/firewall, preferably
+only from your own public IP address. Do not open it to 0.0.0.0/0 unless you
+fully understand and have secured the exposure.
+
+Open in your browser:
+http://NODE-PUBLIC-IP:NODEPORT
+
+Replace NODE-PUBLIC-IP and NODEPORT with your actual values.
+If nodes have no public IP or no public route, use a private network/VPN or a
+properly secured ingress/load balancer instead.
+
+STEP 9 — Access Prometheus without kubectl port-forward (optional NodePort)
+----------------------------------------------------------------------------
+Change the Prometheus Service to NodePort:
+kubectl patch svc monitoring-kube-prometheus-prometheus -n monitoring -p '{"spec":{"type":"NodePort"}}'
+
+Find the actual port:
+kubectl get svc monitoring-kube-prometheus-prometheus -n monitoring
+
+Example output might show:
+9090:32100/TCP
+
+YOUR PORT MAY BE DIFFERENT. Allow that port in the cloud security group/firewall
+only from your own IP address, then open:
+http://NODE-PUBLIC-IP:NODEPORT
+
+STEP 10 — Confirm Grafana can use Prometheus
+--------------------------------------------
+In Grafana:
+1. Log in with username admin and the password from Step 7.
+2. Open Connections -> Data sources.
+3. Open the Prometheus data source.
+4. Use Save & test if shown.
+
+The kube-prometheus-stack chart normally configures the Prometheus data source
+automatically.
+
+STEP 11 — Open a Kubernetes dashboard
+-------------------------------------
+In Grafana:
+1. Open Dashboards -> Browse.
+2. Search for dashboards beginning with "Kubernetes".
+3. Try "Kubernetes / Compute Resources / Pod" if it is present.
+4. Choose the namespace and Pod from the dashboard dropdowns.
+
+The chart may install dashboards with slightly different names depending on
+the version. You can also use Explore to query metrics directly.
+
+STEP 12 — Try these Prometheus queries in Grafana Explore
+---------------------------------------------------------
+Open Explore and choose the Prometheus data source.
+
+Pod information:
+kube_pod_info
+
+Pod status:
+kube_pod_status_phase
+
+Container memory:
+container_memory_working_set_bytes
+
+CPU usage rate:
+rate(container_cpu_usage_seconds_total[5m])
+
+To filter a specific Pod, replace mypod and default with your actual Pod name
+and namespace:
+kube_pod_info{namespace="default",pod="mypod"}
+
+STEP 13 — Troubleshooting commands
+----------------------------------
+Check monitoring Pods:
+kubectl get pods -n monitoring
+
+Check Services and NodePorts:
+kubectl get svc -n monitoring
+
+Check Helm release:
+helm list -n monitoring
+
+Inspect Grafana Pod logs (replace POD_NAME with the actual Grafana Pod name):
+kubectl logs -n monitoring POD_NAME
+
+Describe a Pod if it is not starting (replace POD_NAME):
+kubectl describe pod -n monitoring POD_NAME
+
+If a dashboard is empty:
+- Confirm the Prometheus data source is healthy.
+- Confirm monitoring Pods are Running/Ready.
+- Confirm you selected the correct namespace and Pod.
+- Run "kubectl get pods -A" to find the real Pod name.
+- Some metrics may take a few minutes to appear.
+
+UNINSTALL (only if you intentionally want to remove the stack)
+-------------------------------------------------------------
+helm uninstall monitoring -n monitoring
+
+This removes the Helm release, but the namespace may remain. Be careful:
+removing monitoring can stop your monitoring dashboards and metrics collection.
+
+END
+---
