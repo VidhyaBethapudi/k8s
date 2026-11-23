@@ -72,3 +72,28 @@ eksctl get cluster --region ap-south-1
 eksctl utils describe-stacks --region ap-south-1 --cluster my-eks-cluster
 eksctl scale nodegroup --cluster my-eks-cluster --name standard-workers --nodes 3
 eksctl delete cluster --name my-eks-cluster --region ap-south-1
+
+1. aws eks list-clusters --region ap-south-1
+aws eks list-nodegroups \
+  --cluster-name my-eks-cluster \
+  --region ap-south-1
+  
+2.aws eks delete-nodegroup \
+  --cluster-name my-eks-cluster \
+  --nodegroup-name my-nodegroup \
+  --region ap-south-1
+  
+3.aws eks describe-nodegroup \
+  --cluster-name my-eks-cluster \
+  --nodegroup-name my-nodegroup \
+  --region ap-south-1
+  
+4.aws eks delete-cluster \
+  --name my-eks-cluster \
+  --region ap-south-1
+  
+5.aws eks describe-cluster \
+  --name my-eks-cluster \
+  --region ap-south-1
+  
+6.aws eks list-clusters --region ap-south-1
