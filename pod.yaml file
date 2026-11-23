@@ -21,3 +21,17 @@ kubectl get pods -o wide
 kubectl describe pod nginx-pod
 kubectl port-forward pod/nginx-pod 8080:80
 kubectl delete -f pod.yaml
+1. Check logs with timestamps
+kubectl logs nginx-pod --timestamps=true
+2. Check live logs with timestamps
+kubectl logs -f nginx-pod --timestamps=true
+3. Get logs from the last 1 hour
+kubectl logs nginx-pod --since=1h --timestamps=true
+4. Get logs from the last 10 minutes
+kubectl logs nginx-pod --since=10m --timestamps=true
+5. Get the last 50 log lines
+kubectl logs nginx-pod --tail=50 --timestamps=true
+6. Get logs from a Deployment
+kubectl logs deployment/nginx-deployment --all-pods=true --timestamps=true
+7. Get logs from a specific container
+kubectl logs nginx-pod -c nginx-container --timestamps=true
