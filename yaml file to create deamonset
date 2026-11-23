@@ -1,0 +1,30 @@
+1. What is a DaemonSet?
+A DaemonSet ensures that a copy of a particular Pod runs on each eligible Kubernetes node.
+2. Create daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+
+metadata:
+  name: nginx-daemonset
+
+spec:
+  selector:
+    matchLabels:
+      app: nginx-daemon
+
+  template:
+    metadata:
+      labels:
+        app: nginx-daemon
+
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+4. Check DaemonSet
+kubectl get daemonsets
+kubectl get ds
+5. Check DaemonSet details
+kubectl describe daemonset nginx-daemonset
