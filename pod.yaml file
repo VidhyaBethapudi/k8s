@@ -1,0 +1,23 @@
+vi pod.yaml
+
+
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: nginx-pod
+  labels:
+    app: nginx
+
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx:latest
+      ports:
+        - containerPort: 80
+
+kubectl apply -f pod.yaml
+kubectl get pods -o wide
+kubectl describe pod nginx-pod
+kubectl port-forward pod/nginx-pod 8080:80
+kubectl delete -f pod.yaml
