@@ -1,0 +1,130 @@
+#Kubernetes Rolling Update Deployment
+
+#create a dir with rolling-project
+mkdir rolling-project
+
+#enter into that dir
+cd rolling-project
+
+#Create an HTML file:
+vi index.html
+
+#<html>
+<head>
+    <title>Rolling Update</title>
+</head>
+<body style="text-align:center; margin-top:100px;">
+    <h1>Welcome to My Application</h1>
+    <h2>Version 1</h2>
+    <h3>First Docker Image</h3>
+</body>
+</html>
+
+#vi Dockerfile
+FROM httpd:2.4-alpine
+COPY index.html /usr/local/apache2/htdocs/index.html
+EXPOSE 80
+
+#Build your first Docker image
+docker build -t YOUR-DOCKERHUB-USERNAME/rolling-app:v1 .
+docker images
+
+#Test the first image
+docker run -d --name rolling-v1 -p 8080:80 YOUR-DOCKERHUB-USERNAME/rolling-app:v1
+curl http://localhost:8080
+#After testing, stop and remove the test container:
+docker rm -f rolling-v1
+#Push the first image to Docker Hub
+docker login
+#docker push YOUR-DOCKERHUB-USERNAME/rolling-app:v1
+
+#Create the second version
+Change the webpage:
+vi index.html
+
+#Replace its content with:
+<html>
+<head>
+    <title>Rolling Update</title>
+</head>
+<body style="text-align:center; margin-top:100px;">
+    <h1>Welcome to My Application</h1>
+    <h2>Version 2</h2>
+    <h3>Updated Docker Image</h3>
+</body>
+</html>
+#build docker image
+docker build -t YOUR-DOCKERHUB-USERNAME/rolling-app:v2 .
+docker push YOUR-DOCKERHUB-USERNAME/rolling-app:v2
+#Create Kubernetes Deployment
+vi rolling.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rolling-deployment
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  selector:
+    matchLabels:
+      app: rolling-app
+
+  template:
+    metadata:
+      labels:
+        app: rolling-app
+
+    spec:
+      containers:
+        - name: rolling-container
+          image: YOUR-DOCKERHUB-USERNAME/rolling-app:v1
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+kubectl apply -f rolling.yaml
+kubectl get deployment
+kubectl get pods
+#Create a NodePort Service
+vi rolling-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: rolling-service
+spec:
+  type: NodePort
+  selector:
+    app: rolling-app
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30083
+
+kubectl apply -f rolling-service.yaml
+kubectl get svc
+kubectl get endpoints rolling-service
+kubectl get nodes -o wide
+In another terminal:
+kubectl rollout status deployment/rolling-deployment
+Refresh your browser
+After update
+You should now see:
+
+Welcome to My Application — Version 2
+
+Verify the image:
+kubectl describe deployment rolling-deployment
+kubectl rollout history deployment/rolling-deployment
+Rollback to v1 if needed:
+kubectl rollout undo deployment/rolling-deployment
